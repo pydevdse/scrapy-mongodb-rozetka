@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  mongodb:
+    image: mongo:latest
+    restart: always
+    #environment:
+    #  - MONGO_INITDB_DATABASE=rozetka
+    #  - MONGO_INITDB_ROOT_USERNAME=AdminMongo
+    #  - MONGO_INITDB_ROOT_PASSWORD=Rozetka
+    #networks:
+    #  - mongodb
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data_volume:/var/lib/mongodb
+      
+  scrapy_rozetka:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+    environment:
+      DB_NAME: rozetka
+      DB_USERNAME: rozetka
+      DB_PASSWORD: rozetka
+      DB_HOST: '172.17.0.1'
+      DB_PORT: 27017
+
+networks:
+  mongodb:
+    driver: bridge
+
+volumes:
+  data_volume:
