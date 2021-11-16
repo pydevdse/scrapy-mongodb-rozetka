@@ -1,4 +1,3 @@
-import os
 import json
 import scrapy
 from ..items import RozetkaItem
@@ -10,16 +9,7 @@ class RozetkaSpider(scrapy.Spider):
     
     def parse(self, response):
         for title in response.xpath('.//a[@class="goods-tile__heading ng-star-inserted"]'):
-
-            post = {
-                'title': title.xpath('.//text()').get(),
-                'url': title.xpath('.//@href').extract_first(),
-                #'price': title.xpath('.//p[@class="ng-star-inserted"]/span[@class="goods-tile__price-value"]/text()')
-                    #.get().replace('\xa0', '').strip()
-            }
-            meta = response.meta
-            meta['post'] = post
-            yield response.follow(url=title.xpath('.//@href').extract_first(), callback=self.parse_product, meta=meta)
+            yield response.follow(url=title.xpath('.//@href').extract_first(), callback=self.parse_product)
         if self.COUNT_PAGES > 0:
             self.COUNT_PAGES -= 1
             next_page = response.xpath('//a[@class="button button_color_gray button_size_medium pagination__direction pagination__direction_type_forward ng-star-inserted"]/@href').extract_first()
@@ -28,6 +18,18 @@ class RozetkaSpider(scrapy.Spider):
 
     def parse_product(self, response):
         product_json = json.loads(response.xpath('.//script[@data-seo="Product"]/text()').extract_first())
+        meta = response.meta
+        meta['product'] = product_json
+        yield response.follow(response.url+'characteristics/', meta=meta, callback=self.parse_characteristics)
+
+    def parse_characteristics(self, response):
+        product_json = response.meta['product']
+        characteristics = []
+        for c in response.xpath('//section/dl[@class="characteristics-full__list"]/div[@class="characteristics-full__item ng-star-inserted"]'):
+            parametr_label = c.xpath('.//dt[@class="characteristics-full__label"]/span//text()').extract_first()
+            parametr_value = c.xpath('.//dd[@class="characteristics-full__value"]/ul/li//text()').extract_first()
+            characteristics.append({'label': parametr_label, 'value': parametr_value})
+
         item = RozetkaItem()
         #item['id']
         item['sku'] = product_json['sku']
@@ -39,4 +41,5 @@ class RozetkaSpider(scrapy.Spider):
         item['priceCurrency'] = product_json['offers']['priceCurrency']
         item['priceValidUntil'] = product_json['offers']['priceValidUntil']
         item['brand'] = product_json['brand']['name']
+        item['characteristics'] = characteristics
         yield item
