@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  mongodb:
+  db:
     image: mongo:latest
     restart: always
     #environment:
@@ -11,9 +11,9 @@ services:
     #networks:
     #  - mongodb
     ports:
-      - 27017:27017
+      - 27018:27017
     volumes:
-      - ./data_volume:/var/lib/mongodb
+      - ./data_volume:/data/db
       
   scrapy_rozetka:
     build:
@@ -21,19 +21,15 @@ services:
       dockerfile: Dockerfile
     restart: always
     depends_on:
-      - mongodb
+      - db
     links:
-      - mongodb
+      - db
     environment:
       DB_NAME: rozetka
       DB_USERNAME: rozetka
       DB_PASSWORD: rozetka
-      DB_HOST: '172.17.0.1'
-      DB_PORT: 27017
-
-networks:
-  mongodb:
-    driver: bridge
+      DB_HOST: db
+      DB_PORT: 27018
 
 volumes:
   data_volume:
